@@ -37,24 +37,15 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-      const response = await api.get<Stock>('/stock/' + productId);
+      const stockAmount = await getStockAmount(productId);
       
-      if(response.status !== 200){
-        throw Error('Sorry. Something went wrong with the request.');
-      }
-      
-      const stockProduct: Stock = response.data;
-      if(stockProduct == null){
-        throw Error('There is no product with id ' + productId + 'in our stock.');
-      }
-      
-      if(stockProduct.amount <= 0){
+      if(stockAmount <= 0){
         throw Error('Empty stock!');
       }
       
       const productCart = cart.find((product: Product) => product.id === productId);
 
-      if(productCart == null && stockProduct.amount > 0){
+      if(productCart == null && stockAmount > 0){
         const { data } = await api.get<Product>('/products/' + productId);
         data.amount = 1;
         setCart([...cart, data]);
@@ -62,7 +53,7 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
       }
 
       const productAmount = productCart?.amount;
-      if( productAmount != null && productAmount + 1 > stockProduct.amount){
+      if( productAmount != null && productAmount + 1 > stockAmount){
         throw Error('Sorry! There is not enough of this product in our stock');
       }
        
@@ -76,11 +67,27 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     }
   };
 
+  async function getStockAmount(productId: number){
+    const response = await api.get<Stock>('/stock/' + productId);
+      
+      if(response.status !== 200){
+        throw Error('Sorry. Something went wrong with the request.');
+      }
+      
+      const stockProduct: Stock = response.data;
+      if(stockProduct == null){
+        throw Error('There is no product with id ' + productId + 'in our stock.');
+      }
+
+      return stockProduct.amount;
+  }
+
   const removeProduct = (productId: number) => {
     try {
-      // TODO
-    } catch {
-      // TODO
+      const newCart = cart.filter(product => product.id !== productId);
+      setCart(newCart);
+    } catch (error){
+      alert(error);
     }
   };
 
@@ -89,9 +96,20 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     amount,
   }: UpdateProductAmount) => {
     try {
-      // TODO
-    } catch {
-      // TODO
+      const stockAmount = await getStockAmount(productId);
+      const product = cart.find(prodcut => prodcut.id === productId);
+
+      if( product != null ){
+        if(product.amount + amount > stockAmount){
+            throw Error('Sorry! There is not enough of this product in our stock');
+        }
+        product.amount += amount;
+      }
+
+      setCart([...cart]);
+
+    } catch (error){
+      alert(error);
     }
   };
 
