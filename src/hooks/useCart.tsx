@@ -52,19 +52,25 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
         throw Error('Empty stock!');
       }
       
-      console.log(stockProduct);
-      const productCart = cart.filter((product: Product) => product.id === productId);
-      console.log(productCart);
-       
-      if(productCart.length + 1 > stockProduct.amount){
-        throw Error('Sorry! There is not enough of this product in our stock');
+      const productCart = cart.find((product: Product) => product.id === productId);
+
+      if(productCart == null && stockProduct.amount > 0){
+        const { data } = await api.get<Product>('/products/' + productId);
+        data.amount = 1;
+        setCart([...cart, data]);
+        return;
       }
 
-      const { data } = await api.get<Product>('/products/' + productId);
- 
-      console.log('adding product to cart');
-      setCart([...cart, data]);
+      const productAmount = productCart?.amount;
+      if( productAmount != null && productAmount + 1 > stockProduct.amount){
+        throw Error('Sorry! There is not enough of this product in our stock');
+      }
+       
+      if( productCart?.amount != null ){
+        productCart.amount += 1;
+      }
 
+      setCart([...cart]);
     } catch (error) {
       alert(error);
     }
